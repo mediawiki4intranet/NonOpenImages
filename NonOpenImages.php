@@ -41,17 +41,19 @@ class SpecialNonOpenImages extends SpecialPage {
 				'ic' => array( 'LEFT JOIN', array( 'ic.cl_from=ip.page_id', 'ic.cl_to' => $children ) ),
 			)
 		);
-		$text = "";
+		$pg = array();
 		$frompage = wfMsg( 'nonopenimages-frompage' );
 		foreach ( $res as $row ) {
 			$t = Title::newFromRow( $row );
-			$i = Title::makeTitle( NS_FILE, $row->img_name );
-			if ( $i->userCanReadEx() && $t->userCanReadEx() ) {
-				$text .= "* [[:$i]] $frompage [[:$t]]\n";
+			if ( $t->userCanReadEx() ) {
+				$pg[ $row->img_name ][] = "[[:$t]]";
 			}
 		}
-		if ( $text ) {
-			$text = wfMsg( 'nonopenimages-list', $cat ) . "\n" . $text;
+		if ( $pg ) {
+			$text = wfMsg( 'nonopenimages-list', $cat ) . "\n";
+			foreach ( $pg as $k => $a ) {
+				$text .= "* [[:File:$k]] $frompage ".implode( ", ", $a )."\n";
+			}
 		} else {
 			$text = wfMsg( 'nonopenimages-none', $cat );
 		}
