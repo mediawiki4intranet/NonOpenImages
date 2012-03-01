@@ -18,10 +18,11 @@ class SpecialNonOpenImages extends SpecialPage {
 	}
 
 	public function execute( $par ) {
-		global $wgOut, $wgRequest, $wgTitle;
+		global $wgOut, $wgRequest, $wgTitle, $wgContLang;
 		$dbr = wfGetDB( DB_SLAVE );
 		$cat = $wgRequest->getVal( 'cat', 'Open' );
 		$children = $this->getSubcategories( $cat );
+		// Select non-opened images
 		$res = $dbr->select(
 			array(
 				'p' => 'page',
@@ -46,13 +47,38 @@ class SpecialNonOpenImages extends SpecialPage {
 		foreach ( $res as $row ) {
 			$t = Title::newFromRow( $row );
 			if ( $t->userCanReadEx() ) {
-				$pg[ $row->img_name ][] = "[[:$t]]";
+				$pg[ 'File:'.$row->img_name ][] = "[[:$t]]";
+			}
+		}
+		// Same for templates
+		$res = $dbr->select(
+			array(
+				'p' => 'page',
+				'pc' => 'categorylinks',
+				'tl' => 'templatelinks',
+				't' => 'page',
+				'tc' => 'categorylinks',
+			),
+			'tl.*, p.*',
+			array( 'pc.cl_to' => $children, 'tc.cl_to IS NULL' ), __METHOD__,
+			array( 'GROUP BY' => 't.page_id, p.page_id' ),
+			array(
+				'pc' => array( 'JOIN', array( 'pc.cl_from=p.page_id' ) ),
+				'tl' => array( 'JOIN', array( 'tl_from=p.page_id' ) ),
+				't'  => array( 'JOIN', array( 'tl_namespace=t.page_namespace', 'tl_title=t.page_title' ) ),
+				'tc' => array( 'LEFT JOIN', array( 'tc.cl_from=t.page_id', 'tc.cl_to' => $children ) ),
+			)
+		);
+		foreach ( $res as $row ) {
+			$t = Title::newFromRow( $row );
+			if ( $t->userCanReadEx() ) {
+				$pg[ $wgContLang->getNsText( $row->tl_namespace ).':'.$row->tl_title ][] = "[[:$t]]";
 			}
 		}
 		if ( $pg ) {
 			$text = wfMsg( 'nonopenimages-list', $cat ) . "\n";
 			foreach ( $pg as $k => $a ) {
-				$text .= "* [[:File:$k]] $frompage ".implode( ", ", $a )."\n";
+				$text .= "* [[:$k]] $frompage ".implode( ", ", $a )."\n";
 			}
 		} else {
 			$text = wfMsg( 'nonopenimages-none', $cat );
