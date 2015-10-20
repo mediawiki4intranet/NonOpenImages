@@ -46,7 +46,7 @@ class SpecialNonOpenImages extends SpecialPage {
 		$frompage = wfMsg( 'nonopenimages-frompage' );
 		foreach ( $res as $row ) {
 			$t = Title::newFromRow( $row );
-			if ( $t->userCanRead() ) {
+			if ( $t->userCan( 'read' ) ) {
 				$pg[ 'File:'.$row->img_name ][] = "[[:$t]]";
 			}
 		}
@@ -71,7 +71,7 @@ class SpecialNonOpenImages extends SpecialPage {
 		);
 		foreach ( $res as $row ) {
 			$t = Title::newFromRow( $row );
-			if ( $t->userCanRead() ) {
+			if ( $t->userCan( 'read' ) ) {
 				$pg[ $wgContLang->getNsText( $row->tl_namespace ).':'.$row->tl_title ][] = "[[:$t]]";
 			}
 		}
